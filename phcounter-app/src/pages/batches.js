@@ -2,8 +2,8 @@ import React from 'react';
 import { Search, Filter, Download, Plus, Eye, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const batches = [
-  { id: 'B-2024-001', status: 'Completed', date: '2024-02-10', yield: '450kg', operator: 'John Doe', initial: 'J' },
-  { id: 'B-2024-002', status: 'Processing', date: '2024-02-11', yield: 'Pending', operator: 'Jane Smith', initial: 'J' },
+  { id: 'B-2024-001', status: 'Completed', date: '2024-02-10', yield: '450kg', },
+  { id: 'B-2024-002', status: 'Processing', date: '2024-02-11', yield: 'Pending', },
   { id: 'B-2024-003', status: 'Quality Check', date: '2024-02-12', yield: '420kg', operator: 'Mike Ross', initial: 'M' },
   { id: 'B-2024-004', status: 'Failed', date: '2024-02-12', yield: '0kg', operator: 'John Doe', initial: 'J' },
 ];
@@ -63,7 +63,6 @@ export default function BatchesPage() {
                 <th className="px-8 py-5">Status</th>
                 <th className="px-8 py-5">Date Started</th>
                 <th className="px-8 py-5">Est. Yield</th>
-                <th className="px-8 py-5">Operator</th>
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
@@ -78,14 +77,6 @@ export default function BatchesPage() {
                   </td>
                   <td className="px-8 py-5 text-slate-500 font-medium">{batch.date}</td>
                   <td className="px-8 py-5 text-slate-500 font-medium">{batch.yield}</td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">
-                        {batch.initial}
-                      </div>
-                      <span className="font-semibold text-slate-600 text-sm">{batch.operator}</span>
-                    </div>
-                  </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button className="p-2 hover:bg-emerald-100 rounded-xl text-emerald-600 transition-all">

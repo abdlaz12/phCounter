@@ -7,7 +7,7 @@ export default function MainLayout({ children }) {
   const router = useRouter();
 
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Batch Management', icon: Package, path: '/batches' },
     { name: 'Notifications', icon: Bell, path: '/notifications' },
     { name: 'Profile & Settings', icon: Settings, path: '/profile' },
