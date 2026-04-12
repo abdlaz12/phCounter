@@ -1,5 +1,17 @@
-import "@/styles/globals.css";
+import "../styles/index.css"; // Naik satu tingkat ke src, lalu ke styles
+import MainLayout from "../components/Layout"; // Naik satu tingkat ke src, lalu ke components
 
-export default function App({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+export default function App({ Component, pageProps, router }) {
+  // Jika rute adalah '/' (landing page) atau '/login', jangan pakai layout dashboard
+  const isPlainPage = router.pathname === '/' || router.pathname === '/login';
+
+  if (isPlainPage) {
+    return <Component {...pageProps} />;
+  }
+
+  return (
+    <MainLayout>
+      <Component {...pageProps} />
+    </MainLayout>
+  );
 }

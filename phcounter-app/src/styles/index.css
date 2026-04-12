@@ -1,0 +1,11 @@
+/* src/styles/index.css */
+@import "tailwindcss";
+@import "./theme.css"; /* Pastikan theme.css ada di folder yang sama */
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: sans-serif;
+  }
+}
