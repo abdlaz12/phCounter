@@ -3,8 +3,11 @@ import MainLayout from "../components/Layout"; // Naik satu tingkat ke src, lalu
 
 export default function App({ Component, pageProps, router }) {
   // Jika rute adalah '/' (landing page) atau '/login', jangan pakai layout dashboard
-  const isPlainPage = router.pathname === '/' || router.pathname === '/login';
-
+  const isPlainPage = 
+  router.pathname === '/' || 
+  router.pathname === '/login' ||
+  router.pathname === '/register' ||
+  router.pathname === '/forgot-password';
   if (isPlainPage) {
     return <Component {...pageProps} />;
   }
