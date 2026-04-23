@@ -1,5 +1,4 @@
 // src/lib/mongodb.js
-// testing masuk gk
 import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -17,9 +16,17 @@ export async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose);
+    cached.promise = mongoose
+      .connect(MONGODB_URI, { bufferCommands: false }) // ← tambahan: aman untuk Vercel serverless
+      .then((mongoose) => mongoose);
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null; // ← tambahan: reset agar bisa retry jika koneksi gagal
+    throw e;
+  }
+
   return cached.conn;
 }
