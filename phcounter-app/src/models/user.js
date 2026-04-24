@@ -64,13 +64,10 @@ const UserSchema = new mongoose.Schema(
 );
 
 // ─── Pre-save hook: hash password sebelum disimpan ───────────────────────────
-UserSchema.pre("save", async function (next) {
-  // Hanya hash ulang jika passwordHash diubah
-  if (!this.isModified("passwordHash")) return next();
-
+UserSchema.pre("save", async function () {
+  if (!this.isModified("passwordHash")) return;
   const salt = await bcrypt.genSalt(12);
   this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-  next();
 });
 
 // ─── Instance method: bandingkan password input dengan hash ──────────────────
