@@ -49,14 +49,6 @@ export default function ProfilePage() {
           
           <div className="flex-1 text-center md:text-left space-y-2">
             <h1 className="text-4xl font-extrabold tracking-tight">John Doe</h1>
-            <p className="text-emerald-50 flex items-center justify-center md:justify-start gap-2 font-medium">
-              <Briefcase className="w-4 h-4 text-white/80" /> Senior Eco-Enzyme Specialist
-            </p>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 pt-2 text-emerald-50/90 text-sm">
-              <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> john.doe@ecomonitor.com</span>
-              <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Jakarta, Indonesia</span>
-              <span className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Joined Jan 2024</span>
-            </div>
           </div>
 
           <button 
@@ -106,17 +98,6 @@ export default function ProfilePage() {
               <InputField label="Full Name" defaultValue="John Doe" />
               <InputField label="Email Address" defaultValue="john.doe@ecomonitor.com" type="email" />
               <InputField label="Phone Number" defaultValue="+62 812 3456 7890" />
-              <InputField label="Job Title" defaultValue="Senior Eco-Enzyme Specialist" />
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Department</label>
-                <select className="w-full px-5 py-3.5 bg-[#F8FAFC] border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-medium text-slate-600 appearance-none">
-                  <option>Production</option>
-                  <option>Quality Control</option>
-                  <option>Research & Development</option>
-                  <option>Management</option>
-                </select>
-              </div>
-              <InputField label="Location" defaultValue="Jakarta, Indonesia" />
             </div>
           </section>
 
