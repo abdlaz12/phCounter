@@ -16,14 +16,35 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = (e) => {
+  // ✅ FIX: handleLogin sekarang memanggil API /api/auth/login
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.message || 'Login gagal');
+        return;
+      }
+
+      toast.success('Login berhasil!');
+      router.push('/dashboard');
+    } catch (err) {
+      toast.error('Terjadi kesalahan. Coba lagi.');
+    } finally {
       setLoading(false);
-      toast.success("Welcome back!");
-      router.push('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -126,6 +147,7 @@ export default function Login() {
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
                 <input
                   type="email"
+                  name="email" //{/* ✅ FIX: tambah name attribute */}
                   placeholder="you@example.com"
                   className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900 placeholder:text-gray-400"
                   required
@@ -139,6 +161,7 @@ export default function Login() {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password" //* ✅ FIX: tambah name attribute */}
                   placeholder="••••••••"
                   className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900"
                   required

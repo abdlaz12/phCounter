@@ -18,9 +18,9 @@ export default async function handler(req, res) {
   }
 
   // ── Find user ─────────────────────────────────────────────────────────────
-  const user = await User.findOne({ email: email.toLowerCase() });
+  // ✅ FIX: tambah .select('+passwordHash') karena field passwordHash di-set select: false di model
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
 
-  // Generic error message prevents user enumeration
   const invalidMsg = 'Email atau password salah. Silakan coba lagi.';
 
   if (!user) {
@@ -34,7 +34,8 @@ export default async function handler(req, res) {
   }
 
   // ── Check email verification ──────────────────────────────────────────────
-  if (!user.isVerified) {
+  // ✅ FIX: ganti isVerified → isEmailVerified (sesuai nama field di model user.js)
+  if (!user.isEmailVerified) {
     return res.status(403).json({
       message: 'Akun belum diverifikasi. Silakan cek email Anda.',
       unverified: true,
@@ -54,11 +55,10 @@ export default async function handler(req, res) {
     message: 'Login berhasil',
     user: {
       id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      name: user.name,
       email: user.email,
       role: user.role,
     },
-    token, // Also return token for clients that prefer header-based auth
+    token,
   });
 }
