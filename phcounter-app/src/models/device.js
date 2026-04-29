@@ -1,21 +1,19 @@
-// src/models/device.js
 import mongoose from "mongoose";
 
 const DeviceSchema = new mongoose.Schema(
   {
-    // Sesuai Collection 2: 'Devices' di Model Data Konseptual (Bagian 4.3)
     deviceId: {
       type: String,
-      required: [true, "Device ID wajib diisi."],
+      required: [true, "Device ID is required."],
       unique: true,
       trim: true,
-      uppercase: true, // selalu simpan dalam huruf kapital
+      uppercase: true,
     },
     apiKey: {
       type: String,
       required: true,
       unique: true,
-      select: false, // tidak ikut terambil di query biasa
+      select: false, // Hidden from normal queries
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -24,9 +22,8 @@ const DeviceSchema = new mongoose.Schema(
     },
     nameLabel: {
       type: String,
-      required: [true, "Nama label perangkat wajib diisi."],
+      required: [true, "Label is required."],
       trim: true,
-      maxlength: [100, "Nama label maksimal 100 karakter."],
     },
     statusOnline: {
       type: Boolean,
@@ -38,18 +35,13 @@ const DeviceSchema = new mongoose.Schema(
     },
     isActive: {
       type: Boolean,
-      default: true, // false = perangkat dinonaktifkan
+      default: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Index untuk query cepat berdasarkan userId
-DeviceSchema.index({ userId: 1 });
-
-const Device =
-  mongoose.models.Device || mongoose.model("Device", DeviceSchema);
+// PENTING: Gunakan pola ini agar tidak error saat hot-reload
+const Device = mongoose.models.Device || mongoose.model("Device", DeviceSchema);
 
 export default Device;

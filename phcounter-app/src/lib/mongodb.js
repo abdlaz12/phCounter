@@ -1,6 +1,11 @@
 // src/lib/mongodb.js
 import mongoose from 'mongoose';
 
+// Tambahkan baris ini tepat di bawah import
+console.log('--- CEK KONEKSI ---');
+console.log('Isi MONGODB_URI:', process.env.MONGODB_URI ? "Ditemukan (Aman)" : "KOSONG/TIDAK TERBACA");
+console.log('-------------------');
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {

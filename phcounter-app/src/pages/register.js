@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion'; 
 import {
   Leaf,
   Lock,
   Mail,
   User,
-  Building2,
   ArrowRight,
   Eye,
   EyeOff,
@@ -20,25 +19,69 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
 
-  const handleRegister = (e) => {
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+ const handleRegister = async (e) => {
     e.preventDefault();
 
     if (!agreedToTerms) {
-      toast.error("Please agree to the terms and conditions");
+      toast.error("Anda harus menyetujui syarat dan ketentuan.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Konfirmasi password tidak cocok.");
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
+    
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        // BERHASIL: Beritahu user untuk cek email
+        toast.success("Kode verifikasi telah dikirim ke email Anda!");
+        
+        // REDIRECT: Kirim user ke halaman verifikasi dengan membawa email di URL
+        router.push({
+          pathname: '/verify-otp',
+          query: { email: formData.email }
+        });
+      } else {
+        toast.error(result.message || "Gagal membuat akun.");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
       setLoading(false);
-      toast.success("Account created successfully!");
-      router.push('/');
-    }, 1500);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-white">
+    <div className="min-h-screen w-full flex bg-white font-sans">
       {/* Left Side - Visual Anchor */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -82,15 +125,15 @@ export default function Register() {
                 Your Eco Journey
               </h2>
               <p className="text-emerald-100 text-lg leading-relaxed max-w-md">
-                Join thousands of eco enzyme producers monitoring their fermentation processes with precision.
+                Bergabunglah dengan ribuan produser Eco-Enzyme dalam memantau proses fermentasi secara presisi.
               </p>
             </div>
 
             <div className="space-y-4">
               {[
-                { title: 'Real-time pH Monitoring', desc: 'Track pH levels continuously with instant alerts' },
-                { title: 'Batch Management', desc: 'Organize and track multiple batches efficiently' },
-                { title: 'Data Export & Analytics', desc: 'Export data and gain insights from your fermentation' },
+                { title: 'Real-time pH Monitoring', desc: 'Pantau tingkat pH terus-menerus dengan alert instan.' },
+                { title: 'Batch Management', desc: 'Kelola dan lacak berbagai batch secara efisien.' },
+                { title: 'Data Export & Analytics', desc: 'Ekspor data dan dapatkan wawasan dari fermentasi Anda.' },
               ].map((item) => (
                 <div key={item.title} className="flex items-start gap-3">
                   <div className="p-1 bg-white/20 rounded-full mt-0.5">
@@ -104,15 +147,7 @@ export default function Register() {
               ))}
             </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="text-sm text-emerald-200"
-          >
-            Trusted by eco enzyme producers worldwide
-          </motion.div>
+          <div className="text-sm text-emerald-200">Trusted by eco enzyme producers worldwide</div>
         </div>
       </motion.div>
 
@@ -124,85 +159,98 @@ export default function Register() {
           transition={{ delay: 0.2, duration: 0.6 }}
           className="w-full max-w-md"
         >
-          {/* Mobile Brand Header */}
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="p-2 bg-emerald-100 rounded-xl">
-              <Leaf className="w-7 h-7 text-emerald-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">EcoMonitor</h1>
-              <p className="text-emerald-600 text-sm">pH Tracking System</p>
-            </div>
-          </div>
-
           <div className="mb-8">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-500">Get started with your free account</p>
+            <p className="text-gray-500">Mulai perjalanan digital Eco-Enzyme Anda sekarang.</p>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-5">
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
                   <input
                     type="text"
-                    placeholder="John Doe"
-                    className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                    name="firstName"
+                    onChange={handleChange}
+                    placeholder="Habil"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                     required
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                  <input
+                    type="text"
+                    name="lastName"
+                    onChange={handleChange}
+                    placeholder="Dwi"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
                 <input
                   type="email"
-                  placeholder="you@example.com"
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                  name="email"
+                  onChange={handleChange}
+                  placeholder="habil@example.com"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900"
+                  className="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-gray-900"
+                  className="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -215,11 +263,11 @@ export default function Register() {
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer mt-0.5"
               />
-              <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
-                I agree to the{' '}
-                <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium">Terms of Service</a>
-                {' '}and{' '}
-                <a href="#" className="text-emerald-600 hover:text-emerald-700 font-medium">Privacy Policy</a>
+              <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer">
+                Saya setuju dengan{' '}
+                <a href="#" className="text-emerald-600 font-medium">Syarat Layanan</a>
+                {' '}dan{' '}
+                <a href="#" className="text-emerald-600 font-medium">Kebijakan Privasi</a>
               </label>
             </div>
 
@@ -227,31 +275,22 @@ export default function Register() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               ) : (
-                <>
-                  Create Account
-                  <ArrowRight className="w-5 h-5" />
-                </>
+                <>Create Account <ArrowRight className="w-5 h-5" /></>
               )}
             </motion.button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-600">
-              Already have an account?{' '}
-              <a href="/login" className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors">
+          <div className="mt-6 text-center">
+            <p className="text-gray-600 text-sm">
+              Sudah punya akun?{' '}
+              <a onClick={() => router.push('/login')} className="text-emerald-600 hover:text-emerald-700 font-semibold cursor-pointer">
                 Sign In
               </a>
-            </p>
-          </div>
-
-          <div className="mt-8 pt-8 border-t border-gray-100">
-            <p className="text-center text-sm text-gray-500">
-              Protected by enterprise-grade security
             </p>
           </div>
         </motion.div>

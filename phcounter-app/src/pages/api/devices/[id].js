@@ -1,79 +1,72 @@
-// src/pages/api/devices/[id].js
-/**
- * GET    /api/devices/[id] — detail satu perangkat
- * PATCH  /api/devices/[id] — update nama label perangkat
- * DELETE /api/devices/[id] — nonaktifkan/hapus perangkat
- */
-
 import { connectDB } from "@/lib/mongodb";
 import Device from "@/models/device";
-import { withAuth } from "@/lib/authMiddleware";
+import Batch from "@/models/Batch";
+import jwt from "jsonwebtoken";
 
-async function handler(req, res) {
-  await connectDB();
+export default async function handler(req, res) {
+  try {
+    await connectDB();
+    const { id } = req.query;
 
-  const { id } = req.query;
+    // 1. VERIFIKASI TOKEN
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: "Authentication required." });
+    }
 
-  // Cari device dan pastikan milik user yang login
-  const device = await Device.findOne({
-    _id: id,
-    userId: req.user.userId,
-  });
+    const token = authHeader.split(' ')[1];
+    let currentUserId;
 
-  if (!device) {
-    return res.status(404).json({
-      success: false,
-      message: "Perangkat tidak ditemukan.",
-    });
-  }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      currentUserId = decoded.userId || decoded.id;
+      if (!currentUserId) throw new Error();
+    } catch (err) {
+      return res.status(401).json({ success: false, message: "Session expired." });
+    }
 
-  // ── GET: detail perangkat ───────────────────────────────────────────────────
-  if (req.method === "GET") {
-    return res.status(200).json({
-      success: true,
-      data: device,
-    });
-  }
+    // --- LOGIKA DELETE: HAPUS PERANGKAT ---
+    if (req.method === "DELETE") {
+      // Cari dan hapus device milik user yang sedang login
+      const deletedDevice = await Device.findOneAndDelete({ 
+        _id: id, 
+        userId: currentUserId 
+      });
 
-  // ── PATCH: update nama label ────────────────────────────────────────────────
-  if (req.method === "PATCH") {
-    const { nameLabel, isActive } = req.body;
-
-    if (nameLabel !== undefined) {
-      if (nameLabel.trim().length < 3) {
-        return res.status(400).json({
-          success: false,
-          message: "Nama label minimal 3 karakter.",
-        });
+      if (!deletedDevice) {
+        return res.status(404).json({ success: false, message: "Device not found or unauthorized." });
       }
-      device.nameLabel = nameLabel.trim();
+
+      // OTOMATIS: Hapus semua batch yang pernah menggunakan device ini
+      // Ini menjaga integritas database kamu agar tidak ada batch "yatim"
+      await Batch.deleteMany({ deviceId: id });
+
+      return res.status(200).json({ 
+        success: true, 
+        message: "Device and associated batches permanently removed." 
+      });
     }
 
-    // Aktifkan atau nonaktifkan perangkat
-    if (isActive !== undefined) {
-      device.isActive = isActive;
+    // --- LOGIKA PUT: UPDATE LABEL PERANGKAT (OPSIONAL) ---
+    if (req.method === "PUT") {
+      const { nameLabel } = req.body;
+      const updatedDevice = await Device.findOneAndUpdate(
+        { _id: id, userId: currentUserId },
+        { nameLabel },
+        { new: true }
+      );
+
+      if (!updatedDevice) {
+        return res.status(404).json({ success: false, message: "Device not found." });
+      }
+
+      return res.status(200).json({ success: true, data: updatedDevice });
     }
 
-    await device.save();
+    return res.status(405).json({ success: false, message: "Method not allowed." });
 
-    return res.status(200).json({
-      success: true,
-      message: "Perangkat berhasil diperbarui.",
-      data: device,
-    });
+  } catch (error) {
+    console.error("API DEVICE ID ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error." });
   }
-
-  // ── DELETE: hapus perangkat ─────────────────────────────────────────────────
-  if (req.method === "DELETE") {
-    await Device.findByIdAndDelete(id);
-
-    return res.status(200).json({
-      success: true,
-      message: "Perangkat berhasil dihapus.",
-    });
-  }
-
-  return res.status(405).json({ success: false, message: "Method tidak diizinkan." });
 }
-
-export default withAuth(handler);
