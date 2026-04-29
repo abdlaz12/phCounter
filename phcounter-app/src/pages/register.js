@@ -32,16 +32,16 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
- const handleRegister = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
     if (!agreedToTerms) {
-      toast.error("Anda harus menyetujui syarat dan ketentuan.");
+      toast.error("You must agree to the Terms and Conditions.");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Konfirmasi password tidak cocok.");
+      toast.error("Password confirmation does not match.");
       return;
     }
 
@@ -54,7 +54,7 @@ export default function Register() {
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
-          email: formData.email,
+          email: formData.email.toLowerCase().trim(),
           password: formData.password
         }),
       });
@@ -62,19 +62,17 @@ export default function Register() {
       const result = await res.json();
 
       if (res.ok && result.success) {
-        // BERHASIL: Beritahu user untuk cek email
-        toast.success("Kode verifikasi telah dikirim ke email Anda!");
+        toast.success("Verification code has been sent to your email!");
         
-        // REDIRECT: Kirim user ke halaman verifikasi dengan membawa email di URL
         router.push({
           pathname: '/verify-otp',
-          query: { email: formData.email }
+          query: { email: formData.email, type: 'register' }
         });
       } else {
-        toast.error(result.message || "Gagal membuat akun.");
+        toast.error(result.message || "Failed to create account.");
       }
     } catch (err) {
-      toast.error("Terjadi kesalahan jaringan.");
+      toast.error("Network error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -125,15 +123,15 @@ export default function Register() {
                 Your Eco Journey
               </h2>
               <p className="text-emerald-100 text-lg leading-relaxed max-w-md">
-                Bergabunglah dengan ribuan produser Eco-Enzyme dalam memantau proses fermentasi secara presisi.
+                Join thousands of Eco-Enzyme producers in monitoring the fermentation process with precision.
               </p>
             </div>
 
             <div className="space-y-4">
               {[
-                { title: 'Real-time pH Monitoring', desc: 'Pantau tingkat pH terus-menerus dengan alert instan.' },
-                { title: 'Batch Management', desc: 'Kelola dan lacak berbagai batch secara efisien.' },
-                { title: 'Data Export & Analytics', desc: 'Ekspor data dan dapatkan wawasan dari fermentasi Anda.' },
+                { title: 'Real-time pH Monitoring', desc: 'Monitor pH levels continuously with instant alerts.' },
+                { title: 'Batch Management', desc: 'Efficiently manage and track multiple batches.' },
+                { title: 'Data Export & Analytics', desc: 'Export data and gain insights from your fermentation.' },
               ].map((item) => (
                 <div key={item.title} className="flex items-start gap-3">
                   <div className="p-1 bg-white/20 rounded-full mt-0.5">
@@ -147,7 +145,7 @@ export default function Register() {
               ))}
             </div>
           </motion.div>
-          <div className="text-sm text-emerald-200">Trusted by eco enzyme producers worldwide</div>
+          <div className="text-sm text-emerald-200 uppercase tracking-widest font-bold">Trusted by eco enzyme producers worldwide</div>
         </div>
       </motion.div>
 
@@ -160,36 +158,36 @@ export default function Register() {
           className="w-full max-w-md"
         >
           <div className="mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-500">Mulai perjalanan digital Eco-Enzyme Anda sekarang.</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Create Account</h2>
+            <p className="text-slate-500 font-medium">Begin your digital Eco-Enzyme journey now.</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">First Name</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
                     type="text"
                     name="firstName"
                     onChange={handleChange}
                     placeholder="Habil"
-                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 font-bold"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Last Name</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
                     type="text"
                     name="lastName"
                     onChange={handleChange}
                     placeholder="Dwi"
-                    className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 font-bold"
                     required
                   />
                 </div>
@@ -197,36 +195,36 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Email Address</label>
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                 <input
                   type="email"
                   name="email"
                   onChange={handleChange}
                   placeholder="habil@example.com"
-                  className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 font-bold"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Password</label>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                  className="w-full pl-11 pr-11 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 font-bold"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -234,21 +232,21 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1 ml-1">Confirm Password</label>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-600" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                  className="w-full pl-11 pr-11 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 font-bold"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -261,13 +259,13 @@ export default function Register() {
                 id="terms"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer mt-0.5"
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer mt-0.5"
               />
-              <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer">
-                Saya setuju dengan{' '}
-                <a href="#" className="text-emerald-600 font-medium">Syarat Layanan</a>
-                {' '}dan{' '}
-                <a href="#" className="text-emerald-600 font-medium">Kebijakan Privasi</a>
+              <label htmlFor="terms" className="text-xs text-slate-600 cursor-pointer font-medium">
+                I agree to the{' '}
+                <a href="#" className="text-emerald-600 font-bold underline underline-offset-2">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-emerald-600 font-bold underline underline-offset-2">Privacy Policy</a>
               </label>
             </div>
 
@@ -275,7 +273,7 @@ export default function Register() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
@@ -285,12 +283,12 @@ export default function Register() {
             </motion.button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
-              Sudah punya akun?{' '}
-              <a onClick={() => router.push('/login')} className="text-emerald-600 hover:text-emerald-700 font-semibold cursor-pointer">
+          <div className="mt-8 text-center border-t border-slate-100 pt-6">
+            <p className="text-slate-600 text-sm font-medium">
+              Already have an account?{' '}
+              <button onClick={() => router.push('/login')} className="text-emerald-600 hover:text-emerald-700 font-bold underline underline-offset-4 decoration-2">
                 Sign In
-              </a>
+              </button>
             </p>
           </div>
         </motion.div>

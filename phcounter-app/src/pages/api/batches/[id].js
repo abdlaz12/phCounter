@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/mongodb";
-import Batch from "@/models/Batch";
+import Batch from "@/models/batch";
 import Device from "@/models/device"; // WAJIB ADA karena butuh .populate()
 import jwt from "jsonwebtoken";
 

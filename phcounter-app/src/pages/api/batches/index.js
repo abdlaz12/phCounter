@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import Device from "@/models/device"; 
-import Batch from "@/models/Batch"; 
+import Batch from "@/models/batch"; 
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
