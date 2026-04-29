@@ -22,16 +22,19 @@ export async function connectDB() {
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI, { bufferCommands: false }) // ← tambahan: aman untuk Vercel serverless
+      .connect(MONGODB_URI, { bufferCommands: false })
       .then((mongoose) => mongoose);
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (e) {
-    cached.promise = null; // ← tambahan: reset agar bisa retry jika koneksi gagal
+    cached.promise = null;
     throw e;
   }
 
   return cached.conn;
 }
+
+// ✅ FIX: tambah default export agar bisa di-import sebagai `dbConnect`
+export default connectDB;
