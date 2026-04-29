@@ -3,6 +3,9 @@ import { Thermometer, Droplets, Leaf, Activity, ArrowUpRight, ArrowDownRight, Do
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiRequest } from '@/lib/api';
 import { useRouter } from 'next/router';
+// Import library PDF
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const StatCard = ({ title, value, unit, trend, icon: Icon, trendType }) => (
   <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100 flex justify-between items-start">
@@ -28,6 +31,7 @@ export default function DashboardPage() {
   const [sensorLogs, setSensorLogs] = useState([]);
   const [activeBatch, setActiveBatch] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [stats, setStats] = useState({
     avgPh: 0,
     optimalPercent: 100,
@@ -37,32 +41,26 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      // 1. Ambil batch aktif (Processing)
       const batchRes = await apiRequest('/api/batches');
-      
       if (batchRes.success) {
         const active = batchRes.data.find(b => b.status === 'Processing');
         setActiveBatch(active);
-        
         const processingCount = batchRes.data.filter(b => b.status === 'Processing').length;
 
         if (active) {
-          // 2. Ambil data chart dari endpoint readings terbaru (F-04 & F-07)
-          const sensorRes = await apiRequest(`/api/readings/chart?batchId=${active._id}&limit=20`);
+          const sensorRes = await apiRequest(`/api/readings/chart?batchId=${active._id}&limit=50`); // Ambil lebih banyak data untuk report
 
           if (sensorRes.success && sensorRes.data.length > 0) {
             const rawData = sensorRes.data;
-            
-            // Format data untuk grafik (Waktu: pH)
             const formattedData = rawData.map(log => ({
               name: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              fullDate: new Date(log.timestamp).toLocaleString(),
               ph: log.phValue,
               status: log.status
             }));
 
             setSensorLogs(formattedData);
 
-            // 3. Hitung Statistik Real-time (F-09)
             const avg = rawData.reduce((acc, curr) => acc + curr.phValue, 0) / rawData.length;
             const critical = rawData.filter(d => d.status === 'Anomali').length;
             
@@ -85,9 +83,52 @@ export default function DashboardPage() {
     }
   };
 
+  // Fungsi Export PDF
+  const handleDownloadPDF = () => {
+    if (sensorLogs.length === 0) return alert("No data to export!");
+    setIsExporting(true);
+
+    const doc = new jsPDF();
+    const tableColumn = ["No", "Timestamp", "pH Level", "Status"];
+    const tableRows = [];
+
+    sensorLogs.forEach((log, index) => {
+      const rowData = [
+        index + 1,
+        log.fullDate,
+        log.ph.toString(),
+        log.status
+      ];
+      tableRows.push(rowData);
+    });
+
+    // Judul PDF
+    doc.setFontSize(18);
+    doc.text("EcoMonitor - pH Monitoring Report", 14, 20);
+    
+    // Informasi Batch
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Batch Name: ${activeBatch?.batchName || 'N/A'}`, 14, 30);
+    doc.text(`Report Generated: ${new Date().toLocaleString()}`, 14, 36);
+    doc.text(`Average pH: ${stats.avgPh} | Optimal: ${stats.optimalPercent}%`, 14, 42);
+
+    // Tabel Data
+    autoTable(doc, {
+      startY: 50,
+      head: [tableColumn],
+      body: tableRows,
+      headStyles: { fillColor: [16, 185, 129] }, // Emerald-500
+      alternateRowStyles: { fillColor: [240, 253, 244] }, // Emerald-50
+    });
+
+    doc.save(`EcoMonitor_Report_${activeBatch?.batchName || 'General'}.pdf`);
+    setIsExporting(false);
+  };
+
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 5000); // Polling lebih cepat (5s) untuk demo
+    const interval = setInterval(fetchDashboardData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -102,8 +143,13 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-semibold shadow-sm hover:bg-emerald-50 transition-all">
-            <Download className="w-4 h-4" /> Download Report
+          <button 
+            onClick={handleDownloadPDF}
+            disabled={isExporting || sensorLogs.length === 0}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-semibold shadow-sm hover:bg-emerald-50 transition-all disabled:opacity-50"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} 
+            Download Report
           </button>
           <button 
             onClick={() => router.push('/devices')}
