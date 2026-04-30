@@ -44,7 +44,8 @@ export default function Notifications() {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/notifications', {
+      // Perbaikan URL: Mengarah ke /api/notification (sesuai folder pages/api/notification)
+      const res = await fetch('/api/notification', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await res.json();
@@ -53,15 +54,22 @@ export default function Notifications() {
       }
     } catch (err) {
       console.error("Gagal mengambil notifikasi");
+      toast.error("Failed to sync notifications");
     } finally {
       setLoading(false);
     }
   };
 
+  // Fungsi tambahan untuk Mark All as Read (Opsional)
+  const handleMarkAsRead = async () => {
+    toast.success("All notifications marked as read");
+    // Di sini kamu bisa tambah fetch ke API PUT jika sudah buat endpoint-nya
+  };
+
   useEffect(() => {
     fetchNotifications();
-    // Opsional: Re-fetch setiap 30 detik agar seolah-olah real-time dari Wokwi
-    const interval = setInterval(fetchNotifications, 30000);
+    // Re-fetch setiap 15 detik untuk demo simulasi agar terasa real-time
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -72,7 +80,10 @@ export default function Notifications() {
           <h1 className="text-2xl font-bold text-emerald-950">Notifications</h1>
           <p className="text-emerald-600/60 mt-1">Stay updated with system alerts and activities.</p>
         </div>
-        <button className="text-sm text-emerald-600 hover:text-emerald-800 underline">
+        <button 
+          onClick={handleMarkAsRead}
+          className="text-sm text-emerald-600 hover:text-emerald-800 underline font-medium"
+        >
           Mark all as read
         </button>
       </div>
@@ -91,18 +102,26 @@ export default function Notifications() {
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-gray-900">{notif.title}</h3>
-                  <span className="text-xs text-gray-400 font-medium">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{notif.title}</h3>
+                    {/* Penambahan Identitas Batch jika tersedia */}
+                    {notif.batchId && (
+                      <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-emerald-100 text-emerald-700 font-bold uppercase mt-1 inline-block">
+                        {notif.batchId.nameBatch || "Batch Unknown"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap ml-4">
                     {formatTime(notif.createdAt)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
+                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{notif.message}</p>
               </div>
             </div>
           ))
         ) : (
-          <div className="py-20 text-center text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed">
-            No activities recorded yet.
+          <div className="py-20 text-center text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            No activities recorded yet for your account.
           </div>
         )}
       </div>

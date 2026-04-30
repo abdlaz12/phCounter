@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import Notification from "@/models/Notification";
+import batch from "@/models/batch"; // Wajib import model Batch untuk populate
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
@@ -14,8 +15,9 @@ export default async function handler(req, res) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId || decoded.id;
 
-    // Ambil 50 notifikasi terbaru milik user ini
+    // PERBAIKAN: Gunakan .populate() untuk mengambil info dari model Batch
     const notifications = await Notification.find({ userId })
+      .populate("batchId", "nameBatch") // Mengambil field 'nameBatch' saja dari collection Batches
       .sort({ createdAt: -1 })
       .limit(50);
 
