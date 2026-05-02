@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 const getStatusStyle = (status) => {
   switch (status) {
     case 'Selesai': return 'bg-[#D1FAE5] text-[#059669] border-[#A7F3D0]';
-    case 'Aktif': return 'bg-[#DBEAFE] text-[#2563EB] border-[#BFDBFE]';
+    case 'Aktif': 
+    case 'Processing': return 'bg-[#DBEAFE] text-[#2563EB] border-[#BFDBFE]';
     case 'Anomali': return 'bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]';
     default: return 'bg-gray-100 text-gray-600 border-gray-200';
   }
@@ -24,7 +25,6 @@ export default function BatchesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Ditambahkan field startDate dengan default hari ini (YYYY-MM-DD)
   const [formData, setFormData] = useState({
     nameBatch: '',
     notes: '',
@@ -88,7 +88,6 @@ export default function BatchesPage() {
         body: JSON.stringify({
           ...formData,
           status: 'Aktif',
-          // Mengirimkan startDate yang dipilih dari form
           startDate: new Date(formData.startDate) 
         }),
       });
@@ -229,7 +228,8 @@ export default function BatchesPage() {
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        {batch.status === 'Aktif' && (
+                        {/* PERBAIKAN DI SINI: Mendukung status 'Aktif' ATAU 'Processing' */}
+                        {(batch.status === 'Aktif' || batch.status === 'Processing') && (
                           <button 
                             onClick={() => handleUpdateStatus(batch._id, 'Selesai')}
                             className="p-2.5 bg-white border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
@@ -303,7 +303,6 @@ export default function BatchesPage() {
                     </select>
                   </div>
 
-                  {/* INPUT BARU: Start Date (Sesuai Kebutuhan DOC-2) */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
                         <Calendar className="w-3 h-3" /> Start Date
