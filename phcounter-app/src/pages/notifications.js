@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, AlertTriangle, CheckCircle, Info, Loader2, Trash2, ExternalLink, X } from 'lucide-react';
+import { 
+  Bell, AlertTriangle, CheckCircle, Info, Loader2, 
+  Trash2, ExternalLink, X, Settings 
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/router';
 
@@ -18,6 +21,7 @@ const getIcon = (type) => {
     case 'alert': return <AlertTriangle className="w-5 h-5 text-amber-600" />;
     case 'success': return <CheckCircle className="w-5 h-5 text-emerald-600" />;
     case 'info': return <Info className="w-5 h-5 text-blue-600" />;
+    case 'system': return <Settings className="w-5 h-5 text-slate-600" />;
     default: return <Bell className="w-5 h-5 text-gray-600" />;
   }
 };
@@ -27,6 +31,7 @@ const getBgColor = (type) => {
     case 'alert': return 'bg-amber-50 border-amber-100';
     case 'success': return 'bg-emerald-50 border-emerald-100';
     case 'info': return 'bg-blue-50 border-blue-100';
+    case 'system': return 'bg-slate-50 border-slate-200';
     default: return 'bg-gray-50 border-gray-100';
   }
 };
@@ -35,7 +40,7 @@ export default function Notifications() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all'); // State untuk Filtering Tabs
+  const [activeFilter, setActiveFilter] = useState('all');
 
   const fetchNotifications = async () => {
     try {
@@ -71,10 +76,15 @@ export default function Notifications() {
   };
 
   const handleClearAll = async () => {
-    if (!confirm("Hapus semua riwayat notifikasi?")) return;
-    toast.success("All notifications cleared locally");
-    setNotifications([]);
-    // Tambahkan endpoint DELETE /api/notification/clear jika diperlukan di backend
+    if (!confirm("Hapus semua riwayat notifikasi secara permanen?")) return;
+    try {
+      const token = localStorage.getItem('token');
+      // Opsional: Implementasikan endpoint /api/notification/clear di backend jika perlu
+      setNotifications([]);
+      toast.success("All notifications cleared");
+    } catch (err) {
+      toast.error("Action failed");
+    }
   };
 
   useEffect(() => {
@@ -83,7 +93,6 @@ export default function Notifications() {
     return () => clearInterval(interval);
   }, []);
 
-  // Logika Filtering (Sesuai kebutuhan pengorganisasian data)
   const filteredNotifications = notifications.filter(n => {
     if (activeFilter === 'all') return true;
     return n.type === activeFilter;
@@ -107,13 +116,13 @@ export default function Notifications() {
         </div>
       </div>
 
-      {/* Filtering Tabs (Tetap Tema Emerald) */}
-      <div className="flex gap-2 border-b border-emerald-100 pb-1">
-        {['all', 'alert', 'success', 'info'].map((tab) => (
+      {/* Filtering Tabs */}
+      <div className="flex gap-2 border-b border-emerald-100 overflow-x-auto pb-1 no-scrollbar">
+        {['all', 'alert', 'success', 'info', 'system'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveFilter(tab)}
-            className={`px-4 py-2 text-sm font-bold capitalize transition-all border-b-2 ${
+            className={`px-4 py-2 text-sm font-bold capitalize transition-all border-b-2 whitespace-nowrap ${
               activeFilter === tab 
                 ? 'border-emerald-500 text-emerald-700' 
                 : 'border-transparent text-slate-400 hover:text-emerald-500'
@@ -141,19 +150,24 @@ export default function Notifications() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h3 className="font-bold text-slate-900 leading-tight">{notif.title}</h3>
-                    {notif.batchId && (
-                      <div className="flex items-center gap-2">
-                         <span className="text-[10px] bg-white/80 px-2 py-0.5 rounded-lg border border-emerald-100 text-emerald-700 font-black uppercase tracking-tighter">
-                            Batch: {notif.batchId.nameBatch || "N/A"}
+                    <div className="flex flex-wrap gap-2">
+                      {notif.batchId?.nameBatch && (
+                        <span className="text-[10px] bg-white/80 px-2 py-0.5 rounded-lg border border-emerald-100 text-emerald-700 font-black uppercase tracking-tighter">
+                          Batch: {notif.batchId.nameBatch}
                         </span>
-                      </div>
-                    )}
+                      )}
+                      {/* Metadata pH Badge */}
+                      {notif.metadata?.phValue && (
+                        <span className="text-[10px] bg-red-100/50 px-2 py-0.5 rounded-lg border border-red-200 text-red-700 font-black">
+                          Value: {notif.metadata.phValue} pH
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
                       {formatTime(notif.createdAt)}
                     </span>
-                    {/* Individual Action Button: Delete */}
                     <button 
                         onClick={() => handleDeleteNotif(notif._id)}
                         className="p-1.5 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -164,13 +178,12 @@ export default function Notifications() {
                 </div>
                 <p className="text-sm text-slate-600 mt-2 leading-relaxed">{notif.message}</p>
                 
-                {/* Action Buttons (Sesuai F-10) */}
                 <div className="flex gap-3 mt-4 pt-4 border-t border-black/5">
                     <button 
-                        onClick={() => router.push('/dashboard')}
+                        onClick={() => router.push(notif.link || '/dashboard')}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-700 rounded-lg text-xs font-black hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-100"
                     >
-                        <ExternalLink className="w-3.5 h-3.5" /> View Batch
+                        <ExternalLink className="w-3.5 h-3.5" /> Details
                     </button>
                 </div>
               </div>

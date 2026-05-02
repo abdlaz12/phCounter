@@ -3,24 +3,21 @@ import mongoose from "mongoose";
 
 const NotificationSchema = new mongoose.Schema(
   {
-    // Merujuk ke Collection 1: 'Users'
     userId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User', 
       required: true 
     },
-    // Merujuk ke Collection 3: 'Batches' agar bisa di-populate
     batchId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'Batch',
       default: null 
     },
-    // Tipe notifikasi sesuai SRS
     type: { 
       type: String, 
       enum: {
-        values: ['success', 'info', 'alert'],
-        message: "Tipe harus: success, info, atau alert."
+        values: ['success', 'info', 'alert', 'system'], // Tambah 'system' untuk info maintenance
+        message: "Tipe harus: success, info, alert, atau system."
       },
       required: true 
     },
@@ -32,21 +29,41 @@ const NotificationSchema = new mongoose.Schema(
       type: String, 
       required: [true, "Pesan notifikasi wajib diisi."] 
     },
-    // Status baca untuk fitur "Mark all as read"
+    // TAMBAHAN PRO 1: Action Link
+    // Agar user bisa klik notifikasi dan langsung diarahkan ke halaman detail batch/sensor
+    link: {
+      type: String,
+      default: null
+    },
+    // TAMBAHAN PRO 2: Metadata (Snapshot Data)
+    // Menyimpan nilai pH saat kejadian agar dashboard tidak perlu query ulang ke SensorData
+    metadata: {
+      phValue: { type: Number },
+      deviceId: { type: String }
+    },
     isRead: {
       type: Boolean,
       default: false
     }
   },
   { 
-    // Menggunakan timestamps otomatis agar ada createdAt & updatedAt
     timestamps: true 
   }
 );
 
-// Indexing untuk mempercepat loading halaman notifikasi per user
+// --- INDEXING STRATEGY ---
+
+// Mempercepat loading dashboard notifikasi terbaru per user
 NotificationSchema.index({ userId: 1, createdAt: -1 });
+
+// Mempercepat filter notifikasi berdasarkan batch tertentu
 NotificationSchema.index({ batchId: 1 });
+
+// TAMBAHAN PRO 3: TTL (Time To Live) Index
+// Notifikasi IoT bisa menumpuk sangat cepat. 
+// Index ini akan otomatis menghapus notifikasi yang sudah berumur lebih dari 30 hari.
+// Ini menjaga database tetap ringan (NFR Efficiency).
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 }); // 30 hari dalam detik
 
 const Notification = mongoose.models.Notification || mongoose.model("Notification", NotificationSchema);
 
