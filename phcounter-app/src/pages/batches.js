@@ -6,12 +6,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
+// Disesuaikan dengan Enum di Model Batch: Aktif, Selesai, Anomali
 const getStatusStyle = (status) => {
   switch (status) {
-    case 'Completed': return 'bg-[#D1FAE5] text-[#059669] border-[#A7F3D0]';
-    case 'Processing': return 'bg-[#DBEAFE] text-[#2563EB] border-[#BFDBFE]';
-    case 'Quality Check': return 'bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]';
-    case 'Failed': return 'bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]';
+    case 'Selesai': return 'bg-[#D1FAE5] text-[#059669] border-[#A7F3D0]';
+    case 'Aktif': return 'bg-[#DBEAFE] text-[#2563EB] border-[#BFDBFE]';
+    case 'Anomali': return 'bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]';
     default: return 'bg-gray-100 text-gray-600 border-gray-200';
   }
 };
@@ -24,10 +24,11 @@ export default function BatchesPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Field disesuaikan dengan Model: nameBatch & notes
   const [formData, setFormData] = useState({
-    batchName: '',
-    description: '',
-    targetYield: '',
+    nameBatch: '',
+    notes: '',
     deviceId: '' 
   });
 
@@ -35,10 +36,7 @@ export default function BatchesPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error("Session expired. Please login again.");
-        return;
-      }
+      if (!token) return;
 
       const headers = { 
         'Authorization': `Bearer ${token}`,
@@ -50,26 +48,17 @@ export default function BatchesPage() {
         fetch('/api/devices', { headers })
       ]);
 
-      if (!batchRes.ok) {
-        console.error("Batch Server Error:", await batchRes.text());
-        toast.error("Server gagal memuat data Batch.");
-      } else {
+      if (batchRes.ok) {
         const batchResult = await batchRes.json();
         if (batchResult.success) setBatches(batchResult.data);
-        else toast.error(batchResult.message || "Gagal mengambil data batches.");
       }
 
-      if (!deviceRes.ok) {
-        console.error("Device Server Error:", await deviceRes.text());
-        toast.error("Server gagal memuat data Device.");
-      } else {
+      if (deviceRes.ok) {
         const deviceResult = await deviceRes.json();
         if (deviceResult.success) setDevices(deviceResult.data);
-        else toast.error(deviceResult.message || "Gagal mengambil data devices.");
       }
       
     } catch (err) {
-      console.error(err);
       toast.error("Gagal sinkronisasi dengan server.");
     } finally {
       setLoading(false);
@@ -83,7 +72,7 @@ export default function BatchesPage() {
   const handleCreateBatch = async (e) => {
     e.preventDefault();
     if (!formData.deviceId) {
-      toast.error("Please select a hardware device for this batch.");
+      toast.error("Please select a hardware device.");
       return;
     }
 
@@ -98,20 +87,16 @@ export default function BatchesPage() {
         },
         body: JSON.stringify({
           ...formData,
-          status: 'Processing' 
+          status: 'Aktif', // Sesuai default enum model
+          startDate: new Date() // Sesuai required field di model
         }),
       });
 
-      if (!res.ok) {
-        toast.error(`Server error: ${res.status}`);
-        return;
-      }
-
       const result = await res.json();
       if (result.success) {
-        toast.success("New batch successfully created and linked.");
+        toast.success("New batch successfully created.");
         setIsModalOpen(false);
-        setFormData({ batchName: '', description: '', targetYield: '', deviceId: '' });
+        setFormData({ nameBatch: '', notes: '', deviceId: '' });
         fetchData();
       } else {
         toast.error(result.message);
@@ -134,20 +119,16 @@ export default function BatchesPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ 
+          status: newStatus,
+          endDate: newStatus === 'Selesai' ? new Date() : null 
+        }),
       });
-
-      if (!res.ok) {
-        toast.error("Gagal memperbarui status. Server error.");
-        return;
-      }
 
       const result = await res.json();
       if (result.success) {
         toast.success(`Batch status updated to ${newStatus}`);
         fetchData(); 
-      } else {
-        toast.error(result.message);
       }
     } catch (err) {
       toast.error("Failed to update status.");
@@ -155,7 +136,7 @@ export default function BatchesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this batch? All associated sensor readings will be permanently removed.")) return;
+    if (!confirm("Delete this batch permanently?")) return;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/batches/${id}`, { 
@@ -166,16 +147,15 @@ export default function BatchesPage() {
       if (res.ok) {
         toast.success("Batch removed successfully.");
         setBatches(batches.filter(b => b._id !== id));
-      } else {
-        toast.error("Gagal menghapus batch.");
       }
     } catch (err) {
       toast.error("Failed to delete record.");
     }
   };
 
+  // Filter menggunakan field nameBatch
   const filteredBatches = batches.filter(batch => 
-    batch.batchName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    batch.nameBatch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     batch.deviceId?.nameLabel?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -228,7 +208,7 @@ export default function BatchesPage() {
                 filteredBatches.map((batch) => (
                   <tr key={batch._id} className="hover:bg-emerald-50/20 transition-colors group">
                     <td className="px-8 py-5">
-                      <div className="font-bold text-slate-800">{batch.batchName}</div>
+                      <div className="font-bold text-slate-800">{batch.nameBatch}</div>
                       <div className="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-tighter">System ID: {batch._id}</div>
                     </td>
                     <td className="px-8 py-5">
@@ -243,15 +223,15 @@ export default function BatchesPage() {
                       </span>
                     </td>
                     <td className="px-8 py-5 text-slate-500 font-medium">
-                      {new Date(batch.createdAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                      {batch.startDate ? new Date(batch.startDate).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '-'}
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        {batch.status === 'Processing' && (
+                        {batch.status === 'Aktif' && (
                           <button 
-                            onClick={() => handleUpdateStatus(batch._id, 'Completed')}
+                            onClick={() => handleUpdateStatus(batch._id, 'Selesai')}
                             className="p-2.5 bg-white border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
-                            title="Mark as Completed"
+                            title="Mark as Selesai"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -290,21 +270,21 @@ export default function BatchesPage() {
                 <form onSubmit={handleCreateBatch} className="space-y-5">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
-                       <Layout className="w-3 h-3" /> Batch Name
+                        <Layout className="w-3 h-3" /> Batch Name
                     </label>
                     <input 
                       type="text" 
                       required 
-                      placeholder="e.g. Tank A - Fermentation Phase 1" 
-                      value={formData.batchName} 
-                      onChange={(e) => setFormData({...formData, batchName: e.target.value})} 
-                      className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900 placeholder:text-slate-400" 
+                      placeholder="e.g. Tank A - Phase 1" 
+                      value={formData.nameBatch} 
+                      onChange={(e) => setFormData({...formData, nameBatch: e.target.value})} 
+                      className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900" 
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
-                       <Cpu className="w-3 h-3" /> Hardware Assignment
+                        <Cpu className="w-3 h-3" /> Hardware Assignment
                     </label>
                     <select 
                       required 
@@ -312,49 +292,34 @@ export default function BatchesPage() {
                       onChange={(e) => setFormData({...formData, deviceId: e.target.value})}
                       className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900 appearance-none"
                     >
-                      <option value="" className="text-slate-400">Select an available device...</option>
+                      <option value="">Select a device...</option>
                       {devices.map(dev => (
-                        <option key={dev._id} value={dev._id} className="text-slate-900 font-bold">
+                        <option key={dev._id} value={dev._id}>
                           {dev.nameLabel} ({dev.deviceId})
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
-                         <Info className="w-3 h-3" /> Target Yield (Kg)
-                      </label>
-                      <input 
-                        type="number" 
-                        required 
-                        placeholder="0" 
-                        value={formData.targetYield} 
-                        onChange={(e) => setFormData({...formData, targetYield: e.target.value})} 
-                        className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900 placeholder:text-slate-400" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase ml-1">Default Status</label>
-                      <div className="px-5 py-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-center border border-emerald-100 uppercase text-[10px] tracking-widest">Processing</div>
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Lifecycle Status</label>
+                    <div className="px-5 py-4 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-center border border-emerald-100 uppercase text-[10px] tracking-widest">Aktif</div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Technical Notes</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 tracking-tighter">Fermentation Notes</label>
                     <textarea 
                       placeholder="Ingredients, environment conditions, etc." 
-                      value={formData.description} 
-                      onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                      className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900 placeholder:text-slate-400 min-h-[80px] resize-none" 
+                      value={formData.notes} 
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})} 
+                      className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900 min-h-[100px] resize-none" 
                     />
                   </div>
 
                   <div className="flex gap-4 pt-4">
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-bold text-slate-400">Cancel</button>
-                    <button disabled={isSaving} className="flex-1 py-4 bg-[#10B981] text-white font-bold rounded-2xl shadow-lg hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /> Save Configuration</>}
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-bold text-slate-400 text-sm">Cancel</button>
+                    <button disabled={isSaving} className="flex-1 py-4 bg-[#10B981] text-white font-bold rounded-2xl shadow-lg hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2 text-sm">
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /> Save Batch</>}
                     </button>
                   </div>
                 </form>

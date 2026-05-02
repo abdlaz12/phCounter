@@ -2,69 +2,93 @@ import { connectDB } from "@/lib/mongodb";
 import Device from "@/models/device";
 import Batch from "@/models/batch";
 import SensorData from "@/models/SensorData";
-import Notification from "@/models/Notification"; // WAJIB: Import model notifikasi
+import Notification from "@/models/Notification";
 
 export default async function handler(req, res) {
   try {
     await connectDB();
 
-    // --- POST: Receive Data from Wokwi ---
+    // --- POST: Menerima Data dari ESP32 (Wokwi) ---
     if (req.method === "POST") {
       const { deviceId, apiKey, phValue } = req.body;
 
+      // 1. Validasi Keamanan & Kelengkapan Data (SRS 3.2)
       if (!deviceId || !apiKey || phValue === undefined) {
         return res.status(400).json({ success: false, message: "Missing data fields" });
       }
 
-      // 1. Validasi Perangkat
-      const device = await Device.findOne({ deviceId: deviceId.toUpperCase(), apiKey });
-      if (!device) return res.status(401).json({ success: false, message: "Unauthorized Device" });
-
-      // 2. Update Status Device ke Online
-      await Device.findByIdAndUpdate(device._id, { statusOnline: true, lastSeen: new Date() });
-
-      // 3. Cari Batch Aktif (Processing)
-      const activeBatch = await Batch.findOne({ deviceId: device._id, status: 'Processing' });
-
-      // 4. Logika Penentuan Status (F-09) & Setup Notifikasi
-      let status = "Normal";
-      let notifType = null;
-      let notifTitle = "";
       const val = parseFloat(phValue);
 
-      if (val > 5.5 || val < 3.0) {
-        status = "Anomali";
-        notifType = "alert";
-        notifTitle = "Kritis: pH Anomali Terdeteksi!";
-      } else if (val > 4.5) {
-        status = "Perhatian";
-        notifType = "alert"; // Menggunakan desain UI amber/alert kamu
-        notifTitle = "Peringatan: pH Mendekati Batas";
+      // 2. Validasi Rentang pH (Wajib sesuai NFR 3.2 di DOC-2)
+      // Memblokir data jika di luar rentang sensor pH standar (0-14)
+      if (val < 0 || val > 14) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid pH range. Value must be between 0 and 14." 
+        });
       }
 
-      // 5. Simpan Data Sensor (F-05)
+      // 3. Validasi Perangkat (Auth via Body sesuai revisi dokumen kita)
+      const device = await Device.findOne({ deviceId: deviceId.toUpperCase(), apiKey });
+      if (!device) {
+        return res.status(401).json({ success: false, message: "Unauthorized Device" });
+      }
+
+      // 4. Update Heartbeat Device
+      await Device.findByIdAndUpdate(device._id, { statusOnline: true, lastSeen: new Date() });
+
+      // 5. Cari Batch yang sedang berjalan (Status: 'Aktif' sesuai model Batch fix)
+      const activeBatch = await Batch.findOne({ deviceId: device._id, status: 'Aktif' });
+
+      // 6. Logika Penentuan Status & Notifikasi (Sesuai F-09 di DOC-2)
+      // Kriteria: Anomali (>6 atau <2.5), Perhatian (5-6), Normal (Trend ke 3-4)
+      let currentStatus = "Normal";
+      let notifType = null;
+      let notifTitle = "";
+
+      if (val > 6.0 || val < 2.5) {
+        currentStatus = "Anomali";
+        notifType = "alert";
+        notifTitle = "Kritis: pH Anomali Terdeteksi!";
+      } else if (val > 5.0) {
+        currentStatus = "Perhatian";
+        notifType = "info"; // Menggunakan warna info/biru untuk perhatian
+        notifTitle = "Perhatian: Penurunan pH Lambat";
+      }
+
+      // 7. Simpan Data Sensor (F-05)
       const newReading = await SensorData.create({
         deviceId: device._id,
         batchId: activeBatch ? activeBatch._id : null,
         phValue: val,
-        status: status,
+        status: currentStatus,
         timestamp: new Date()
       });
 
-      // 6. INTEGRASI NOTIFIKASI (Dengan Sistem Anti-Spam IoT)
+      // 8. Update Latest Reading di model Batch (untuk efisiensi dashboard)
+      if (activeBatch) {
+        await Batch.findByIdAndUpdate(activeBatch._id, {
+          latestReading: { pH: val, timestamp: new Date() }
+        });
+      }
+
+      // 9. Integrasi Notifikasi dengan Cooldown 5 Menit (Anti-Spam)
       if (activeBatch && notifType) {
-        // Cek notifikasi terakhir untuk batch ini agar tidak nyepam tiap detik
-        const lastNotif = await Notification.findOne({ batchId: activeBatch._id }).sort({ createdAt: -1 });
+        const lastNotif = await Notification.findOne({ 
+          batchId: activeBatch._id, 
+          type: notifType 
+        }).sort({ createdAt: -1 });
+
         const now = new Date();
-        
-        // Cooldown: Hanya kirim notifikasi jika belum pernah ada, atau sudah lewat 5 menit dari notif terakhir
-        if (!lastNotif || (now - lastNotif.createdAt) > 5 * 60 * 1000) {
+        const cooldown = 5 * 60 * 1000; // 5 menit
+
+        if (!lastNotif || (now - new Date(lastNotif.createdAt)) > cooldown) {
           await Notification.create({
-            userId: device.userId, // Kaitkan dengan pemilik device
+            userId: device.userId,
             batchId: activeBatch._id,
             type: notifType,
             title: notifTitle,
-            message: `Batch "${activeBatch.batchName}" pada alat ${device.nameLabel} mencatat pH tidak normal: ${val}.`,
+            message: `Batch "${activeBatch.nameBatch}" mencatat pH ${currentStatus.toLowerCase()}: ${val.toFixed(1)} pada alat ${device.nameLabel}.`,
             createdAt: now
           });
         }
@@ -73,12 +97,15 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, data: newReading });
     }
 
-    // --- GET: Fetch History per Batch (F-06) ---
+    // --- GET: Mengambil Riwayat per Batch (F-06) ---
     if (req.method === "GET") {
-      const { batchId } = req.query;
+      const { batchId, limit = 50 } = req.query;
       if (!batchId) return res.status(400).json({ success: false, message: "Batch ID is required" });
 
-      const readings = await SensorData.find({ batchId }).sort({ timestamp: -1 });
+      const readings = await SensorData.find({ batchId })
+        .sort({ timestamp: -1 })
+        .limit(parseInt(limit));
+
       return res.status(200).json({ success: true, data: readings });
     }
 

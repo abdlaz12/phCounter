@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, Info, Loader2, Trash2, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/router';
 
-// Helper untuk format waktu (Contoh: "2 mins ago")
 const formatTime = (date) => {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " mins ago";
-  return "just now";
+  if (seconds < 60) return "just now";
+  const interval = seconds / 60;
+  if (interval < 60) return Math.floor(interval) + " mins ago";
+  const hours = interval / 60;
+  if (hours < 24) return Math.floor(hours) + " hours ago";
+  return Math.floor(hours / 24) + " days ago";
 };
 
 const getIcon = (type) => {
@@ -37,14 +32,14 @@ const getBgColor = (type) => {
 };
 
 export default function Notifications() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all'); // State untuk Filtering Tabs
 
-  // FUNGSI UTAMA: Ambil data notifikasi dari API
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Perbaikan URL: Mengarah ke /api/notification (sesuai folder pages/api/notification)
       const res = await fetch('/api/notification', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -53,75 +48,137 @@ export default function Notifications() {
         setNotifications(result.data);
       }
     } catch (err) {
-      console.error("Gagal mengambil notifikasi");
       toast.error("Failed to sync notifications");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fungsi tambahan untuk Mark All as Read (Opsional)
-  const handleMarkAsRead = async () => {
-    toast.success("All notifications marked as read");
-    // Di sini kamu bisa tambah fetch ke API PUT jika sudah buat endpoint-nya
+  const handleDeleteNotif = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/notification/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setNotifications(notifications.filter(n => n._id !== id));
+        toast.success("Notification dismissed");
+      }
+    } catch (err) {
+      toast.error("Delete failed");
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!confirm("Hapus semua riwayat notifikasi?")) return;
+    toast.success("All notifications cleared locally");
+    setNotifications([]);
+    // Tambahkan endpoint DELETE /api/notification/clear jika diperlukan di backend
   };
 
   useEffect(() => {
     fetchNotifications();
-    // Re-fetch setiap 15 detik untuk demo simulasi agar terasa real-time
     const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, []);
 
+  // Logika Filtering (Sesuai kebutuhan pengorganisasian data)
+  const filteredNotifications = notifications.filter(n => {
+    if (activeFilter === 'all') return true;
+    return n.type === activeFilter;
+  });
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl mx-auto pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-emerald-950">Notifications</h1>
           <p className="text-emerald-600/60 mt-1">Stay updated with system alerts and activities.</p>
         </div>
-        <button 
-          onClick={handleMarkAsRead}
-          className="text-sm text-emerald-600 hover:text-emerald-800 underline font-medium"
-        >
-          Mark all as read
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleClearAll}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-all"
+          >
+            <Trash2 className="w-4 h-4" /> Clear All
+          </button>
+        </div>
       </div>
 
+      {/* Filtering Tabs (Tetap Tema Emerald) */}
+      <div className="flex gap-2 border-b border-emerald-100 pb-1">
+        {['all', 'alert', 'success', 'info'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveFilter(tab)}
+            className={`px-4 py-2 text-sm font-bold capitalize transition-all border-b-2 ${
+              activeFilter === tab 
+                ? 'border-emerald-500 text-emerald-700' 
+                : 'border-transparent text-slate-400 hover:text-emerald-500'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* List Section */}
       <div className="space-y-3">
         {loading ? (
           <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-emerald-500" /></div>
-        ) : notifications.length > 0 ? (
-          notifications.map((notif) => (
+        ) : filteredNotifications.length > 0 ? (
+          filteredNotifications.map((notif) => (
             <div
               key={notif._id}
-              className={`flex items-start gap-4 p-4 rounded-xl border ${getBgColor(notif.type)} transition-transform hover:scale-[1.01] cursor-pointer shadow-sm`}
+              className={`flex items-start gap-4 p-5 rounded-2xl border ${getBgColor(notif.type)} shadow-sm transition-all group`}
             >
-              <div className="p-2 rounded-full bg-white shadow-sm">
+              <div className="p-2.5 rounded-xl bg-white shadow-sm h-fit">
                 {getIcon(notif.type)}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{notif.title}</h3>
-                    {/* Penambahan Identitas Batch jika tersedia */}
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-slate-900 leading-tight">{notif.title}</h3>
                     {notif.batchId && (
-                      <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-emerald-100 text-emerald-700 font-bold uppercase mt-1 inline-block">
-                        {notif.batchId.nameBatch || "Batch Unknown"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[10px] bg-white/80 px-2 py-0.5 rounded-lg border border-emerald-100 text-emerald-700 font-black uppercase tracking-tighter">
+                            Batch: {notif.batchId.nameBatch || "N/A"}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap ml-4">
-                    {formatTime(notif.createdAt)}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                      {formatTime(notif.createdAt)}
+                    </span>
+                    {/* Individual Action Button: Delete */}
+                    <button 
+                        onClick={() => handleDeleteNotif(notif._id)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{notif.message}</p>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">{notif.message}</p>
+                
+                {/* Action Buttons (Sesuai F-10) */}
+                <div className="flex gap-3 mt-4 pt-4 border-t border-black/5">
+                    <button 
+                        onClick={() => router.push('/dashboard')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-700 rounded-lg text-xs font-black hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-100"
+                    >
+                        <ExternalLink className="w-3.5 h-3.5" /> View Batch
+                    </button>
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="py-20 text-center text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-            No activities recorded yet for your account.
+          <div className="py-20 text-center text-slate-400 italic bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
+            No {activeFilter === 'all' ? '' : activeFilter} notifications found.
           </div>
         )}
       </div>
