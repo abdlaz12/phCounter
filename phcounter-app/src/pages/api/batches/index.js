@@ -4,7 +4,6 @@ import Batch from "@/models/batch";
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
-  // GLOBAL TRY-CATCH: Memastikan error apapun direturn sebagai JSON, bukan HTML
   try {
     await connectDB();
 
@@ -19,7 +18,6 @@ export default async function handler(req, res) {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      // Fallback: Mengakomodasi jika struktur token pakai 'userId' atau 'id'
       currentUserId = decoded.userId || decoded.id; 
       
       if (!currentUserId) {
@@ -34,7 +32,7 @@ export default async function handler(req, res) {
       const batches = await Batch.find({ userId: currentUserId })
         .populate({
           path: 'deviceId',
-          model: Device, // Pastikan model Device terekspor dengan benar di file modelnya
+          model: Device,
           select: 'nameLabel deviceId statusOnline'
         })
         .sort({ createdAt: -1 });
@@ -44,11 +42,15 @@ export default async function handler(req, res) {
 
     // --- LOGIKA POST: MEMBUAT BATCH BARU ---
     if (req.method === "POST") {
-      const { batchName, deviceId, description, targetYield } = req.body;
+      // PERBAIKAN 1: Destructuring menggunakan nameBatch dan notes (bukan batchName/description)
+      const { nameBatch, deviceId, notes, startDate } = req.body;
 
-      // Validasi input dasar
-      if (!batchName || !deviceId) {
-        return res.status(400).json({ success: false, message: "Batch name and Device are required." });
+      // PERBAIKAN 2: Validasi menggunakan nameBatch
+      if (!nameBatch || !deviceId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Batch name and Device are required." 
+        });
       }
 
       // 1. Validasi Kepemilikan Device
@@ -57,23 +59,23 @@ export default async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Device not found or unauthorized." });
       }
 
-      // 2. Cegah Double Batch (Satu alat tidak bisa menjalankan 2 batch 'Processing' sekaligus)
-      const activeBatch = await Batch.findOne({ deviceId, status: 'Processing' });
+      // 2. Cegah Double Batch (Menggunakan status 'Aktif' sesuai model terbaru)
+      const activeBatch = await Batch.findOne({ deviceId, status: 'Aktif' });
       if (activeBatch) {
         return res.status(400).json({ 
           success: false, 
-          message: `Device is currently busy with batch: ${activeBatch.batchName}` 
+          message: `Device is currently busy with batch: ${activeBatch.nameBatch}` 
         });
       }
 
-      // 3. Eksekusi Pembuatan Batch
+      // 3. Eksekusi Pembuatan Batch (Field disesuaikan dengan models/batch.js)
       const newBatch = await Batch.create({
-        batchName,
+        nameBatch,
         deviceId,
         userId: currentUserId,
-        description: description || "",
-        targetYield: targetYield || 0,
-        status: 'Processing' // Default langsung aktif
+        notes: notes || "",
+        startDate: startDate ? new Date(startDate) : new Date(),
+        status: 'Aktif' // Default menggunakan 'Aktif' sesuai Enum model
       });
 
       return res.status(201).json({ 
@@ -83,11 +85,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // Method selain GET dan POST akan ditolak
     return res.status(405).json({ success: false, message: "Method not allowed" });
 
   } catch (globalError) {
-    // Tangkap error fatal di sini (misal: gagal koneksi DB atau model salah)
     console.error("API FATAL ERROR:", globalError);
     return res.status(500).json({ 
       success: false, 
