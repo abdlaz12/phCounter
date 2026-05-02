@@ -180,7 +180,7 @@ export default function Notifications() {
                 
                 <div className="flex gap-3 mt-4 pt-4 border-t border-black/5">
                     <button 
-                        onClick={() => router.push(notif.link || '/dashboard')}
+                        onClick={() => router.push('/dashboard')}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-700 rounded-lg text-xs font-black hover:bg-emerald-500 hover:text-white transition-all shadow-sm border border-emerald-100"
                     >
                         <ExternalLink className="w-3.5 h-3.5" /> Details
