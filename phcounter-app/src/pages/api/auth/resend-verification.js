@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/user';
-import { sendVerificationEmail } from '@/lib/mailer';
+import { sendVerificationEmail } from '@/lib/emailer';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
