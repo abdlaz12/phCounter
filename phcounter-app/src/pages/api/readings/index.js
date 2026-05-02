@@ -5,7 +5,7 @@ import Device from "@/models/device";
 import Batch from "@/models/batch";
 import SensorData from "@/models/SensorData";
 import Notification from "@/models/Notification";
-import { sendEmail, getAnomalyTemplate } from "@/lib/emailer";
+import { sendEmail, getAnomalyTemplate } from "@/lib/mail";
 
 export default async function handler(req, res) {
   try {
