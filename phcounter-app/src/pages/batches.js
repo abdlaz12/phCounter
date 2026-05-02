@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, Eye, Trash2, Check,
-  Loader2, X, Save, Layout, Info, Cpu 
+  Loader2, X, Save, Layout, Info, Cpu, Calendar 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
-// Disesuaikan dengan Enum di Model Batch: Aktif, Selesai, Anomali
 const getStatusStyle = (status) => {
   switch (status) {
     case 'Selesai': return 'bg-[#D1FAE5] text-[#059669] border-[#A7F3D0]';
@@ -25,11 +24,12 @@ export default function BatchesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Field disesuaikan dengan Model: nameBatch & notes
+  // Ditambahkan field startDate dengan default hari ini (YYYY-MM-DD)
   const [formData, setFormData] = useState({
     nameBatch: '',
     notes: '',
-    deviceId: '' 
+    deviceId: '',
+    startDate: new Date().toISOString().split('T')[0] 
   });
 
   const fetchData = async () => {
@@ -87,8 +87,9 @@ export default function BatchesPage() {
         },
         body: JSON.stringify({
           ...formData,
-          status: 'Aktif', // Sesuai default enum model
-          startDate: new Date() // Sesuai required field di model
+          status: 'Aktif',
+          // Mengirimkan startDate yang dipilih dari form
+          startDate: new Date(formData.startDate) 
         }),
       });
 
@@ -96,7 +97,12 @@ export default function BatchesPage() {
       if (result.success) {
         toast.success("New batch successfully created.");
         setIsModalOpen(false);
-        setFormData({ nameBatch: '', notes: '', deviceId: '' });
+        setFormData({ 
+            nameBatch: '', 
+            notes: '', 
+            deviceId: '', 
+            startDate: new Date().toISOString().split('T')[0] 
+        });
         fetchData();
       } else {
         toast.error(result.message);
@@ -110,7 +116,6 @@ export default function BatchesPage() {
 
   const handleUpdateStatus = async (id, newStatus) => {
     if (!confirm(`Are you sure you want to mark this batch as ${newStatus}?`)) return;
-    
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`/api/batches/${id}`, {
@@ -124,7 +129,6 @@ export default function BatchesPage() {
           endDate: newStatus === 'Selesai' ? new Date() : null 
         }),
       });
-
       const result = await res.json();
       if (result.success) {
         toast.success(`Batch status updated to ${newStatus}`);
@@ -143,7 +147,6 @@ export default function BatchesPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (res.ok) {
         toast.success("Batch removed successfully.");
         setBatches(batches.filter(b => b._id !== id));
@@ -153,7 +156,6 @@ export default function BatchesPage() {
     }
   };
 
-  // Filter menggunakan field nameBatch
   const filteredBatches = batches.filter(batch => 
     batch.nameBatch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     batch.deviceId?.nameLabel?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -299,6 +301,20 @@ export default function BatchesPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* INPUT BARU: Start Date (Sesuai Kebutuhan DOC-2) */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1 flex items-center gap-2">
+                        <Calendar className="w-3 h-3" /> Start Date
+                    </label>
+                    <input 
+                      type="date" 
+                      required 
+                      value={formData.startDate} 
+                      onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 outline-none font-bold text-slate-900" 
+                    />
                   </div>
 
                   <div className="space-y-2">
