@@ -71,8 +71,10 @@ export default function BatchesPage() {
 
   const handleCreateBatch = async (e) => {
     e.preventDefault();
-    if (!formData.deviceId) {
-      toast.error("Please select a hardware device.");
+
+    // PERBAIKAN VALIDASI: Menggunakan nameBatch sesuai Model
+    if (!formData.nameBatch || !formData.deviceId) {
+      toast.error("Batch name and Device are required.");
       return;
     }
 
@@ -104,7 +106,7 @@ export default function BatchesPage() {
         });
         fetchData();
       } else {
-        toast.error(result.message);
+        toast.error(result.message || "Failed to create batch.");
       }
     } catch (err) {
       toast.error("Server connection failed.");
@@ -228,7 +230,6 @@ export default function BatchesPage() {
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        {/* PERBAIKAN DI SINI: Mendukung status 'Aktif' ATAU 'Processing' */}
                         {(batch.status === 'Aktif' || batch.status === 'Processing') && (
                           <button 
                             onClick={() => handleUpdateStatus(batch._id, 'Selesai')}
