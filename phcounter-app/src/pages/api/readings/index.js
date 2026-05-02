@@ -1,9 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
+// Wajib mengimpor User di awal untuk mendaftarkan schema ke Mongoose
+import User from "@/models/user"; 
 import Device from "@/models/device";
 import Batch from "@/models/batch";
 import SensorData from "@/models/SensorData";
 import Notification from "@/models/Notification";
-import { sendEmail, getAnomalyTemplate } from "@/lib/mail";
+import { sendEmail, getAnomalyTemplate } from "@/lib/emailer";
 
 export default async function handler(req, res) {
   try {
@@ -19,7 +21,7 @@ export default async function handler(req, res) {
       }
 
       const val = parseFloat(phValue);
-      // Validasi Rentang Fisik Sensor (0-14)
+      // Validasi Rentang Fisik Sensor (0-14) sesuai NFR 3.2
       if (val < 0 || val > 14) {
         return res.status(400).json({ 
           success: false, 
@@ -39,15 +41,16 @@ export default async function handler(req, res) {
       });
 
       // 3. Pencarian Batch Aktif & Identitas User
+      // Menggunakan .populate untuk mengambil data user termasuk preferences
       const activeBatch = await Batch.findOne({ deviceId: device._id, status: 'Aktif' })
-        .populate('userId', 'email');
+        .populate('userId');
 
       // 4. Penentuan Status Berdasarkan Ambang Batas (Threshold)
       let currentStatus = "Normal";
       let notifType = null;
       let notifTitle = "";
 
-      // Threshold sesuai standar operasional AeroFeed
+      // Logika Penentuan Status & Notifikasi (SRS F-09)
       if (val > 6.0 || val < 2.5) {
         currentStatus = "Anomali";
         notifType = "alert";
@@ -58,7 +61,7 @@ export default async function handler(req, res) {
         notifTitle = "Perhatian: Kondisi pH Meningkat";
       }
 
-      // 5. Simpan Pembacaan ke Database
+      // 5. Simpan Pembacaan ke Database (F-05)
       const newReading = await SensorData.create({
         deviceId: device._id,
         batchId: activeBatch ? activeBatch._id : null,
@@ -75,24 +78,23 @@ export default async function handler(req, res) {
 
         // 7. Logika Notifikasi Berjenjang & Email Alert
         if (notifType) {
-          // Cooldown Check: Mencegah spam notifikasi (Interval 5 menit)
           const lastNotif = await Notification.findOne({ 
             batchId: activeBatch._id, 
             type: notifType 
           }).sort({ createdAt: -1 });
 
           const now = new Date();
-          const cooldown = 5 * 60 * 1000; 
+          const cooldown = 5 * 60 * 1000; // 5 menit anti-spam
 
           if (!lastNotif || (now - new Date(lastNotif.createdAt)) > cooldown) {
-            // A. Pembuatan Notifikasi Sistem (Lengkap dengan Metadata & Link)
+            // A. Simpan ke Koleksi Notification
             await Notification.create({
               userId: device.userId,
               batchId: activeBatch._id,
               type: notifType,
               title: notifTitle,
               message: `Batch "${activeBatch.nameBatch}" mencatat pH ${currentStatus.toLowerCase()}: ${val.toFixed(1)} pada alat ${device.nameLabel}.`,
-              link: `/batches/`, 
+              link: `/batches/${activeBatch._id}`, 
               metadata: {
                 phValue: val,
                 deviceId: device.deviceId
@@ -100,11 +102,16 @@ export default async function handler(req, res) {
               createdAt: now
             });
 
-            // B. Pengiriman Email Alert Otomatis (Hanya untuk tipe 'alert')
-            if (notifType === 'alert' && activeBatch.userId?.email) {
+            // B. Kirim Email Alert jika tipe 'alert' dan User mengaktifkan Preference-nya
+            const user = activeBatch.userId;
+            const canSendEmail = notifType === 'alert' && 
+                                 user?.email && 
+                                 user?.preferences?.notifyPhAlert !== false;
+
+            if (canSendEmail) {
               try {
                 await sendEmail({
-                  to: activeBatch.userId.email,
+                  to: user.email,
                   subject: `🚨 [AeroFeed Alert] Anomali pada ${activeBatch.nameBatch}`,
                   html: getAnomalyTemplate(activeBatch.nameBatch, val.toFixed(1), device.nameLabel)
                 });
@@ -119,7 +126,7 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, data: newReading });
     }
 
-    // --- LOGIKA GET: Mengambil Riwayat Pembacaan per Batch ---
+    // --- LOGIKA GET: Mengambil Riwayat Pembacaan per Batch (F-06) ---
     if (req.method === "GET") {
       const { batchId, limit = 50 } = req.query;
       if (!batchId) {
