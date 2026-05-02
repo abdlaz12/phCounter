@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Cpu, Copy, Check, Trash2, X, Save, Loader2, Info, Leaf } from 'lucide-react';
+import { Plus, Cpu, Copy, Check, Trash2, X, Save, Loader2, Info, Leaf, Layout } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -54,7 +54,6 @@ export default function DeviceManagement() {
     }
   };
 
-  // FUNGSI BARU: Hapus Device
   const handleDeleteDevice = async (id) => {
     if (!confirm("Are you sure? This will also delete all batches connected to this device.")) return;
     
@@ -108,13 +107,10 @@ export default function DeviceManagement() {
         ) : devices.length > 0 ? (
           devices.map((device) => (
             <div key={device._id} className="bg-white p-6 rounded-[32px] border border-emerald-50 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-              
               <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-2xl ${device.statusOnline ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                   <Cpu className="w-6 h-6" />
                 </div>
-                
-                {/* Bagian Indikator Status & Tombol Hapus */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${device.statusOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
@@ -161,21 +157,47 @@ export default function DeviceManagement() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-[40px] p-8 shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-white rounded-[40px] p-8 shadow-2xl overflow-hidden border border-emerald-50">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-900">New Hardware</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900">New Hardware</h2>
+                    <p className="text-sm text-emerald-600 font-medium">Link your Wokwi simulation device.</p>
+                </div>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all"><X /></button>
               </div>
+
               <form onSubmit={handleAddDevice} className="space-y-6">
+                {/* Input 1: Hardware ID */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase ml-1">Hardware ID (Wokwi ID)</label>
-                  <input type="text" required placeholder="ESP32-LAB-01" value={formData.deviceId} onChange={(e) => setFormData({...formData, deviceId: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl outline-none font-bold" />
+                  <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-wider flex items-center gap-2">
+                    <Cpu className="w-3 h-3" /> Hardware ID (Wokwi ID)
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Contoh: ESP32-LAB-01" 
+                    value={formData.deviceId} 
+                    onChange={(e) => setFormData({...formData, deviceId: e.target.value})} 
+                    className="w-full px-5 py-4 bg-emerald-50 border-2 border-emerald-100 rounded-2xl outline-none font-bold text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white transition-all" 
+                  />
                 </div>
+
+                {/* Input 2: Asset Label */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase ml-1">Asset Label</label>
-                  <input type="text" required placeholder="Main Fermentation Tank" value={formData.nameLabel} onChange={(e) => setFormData({...formData, nameLabel: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-emerald-100 rounded-2xl outline-none font-bold" />
+                  <label className="text-xs font-black text-slate-500 uppercase ml-1 tracking-wider flex items-center gap-2">
+                    <Layout className="w-3 h-3" /> Asset Label
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Contoh: Tangki Utama A" 
+                    value={formData.nameLabel} 
+                    onChange={(e) => setFormData({...formData, nameLabel: e.target.value})} 
+                    className="w-full px-5 py-4 bg-emerald-50 border-2 border-emerald-100 rounded-2xl outline-none font-bold text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white transition-all" 
+                  />
                 </div>
-                <button disabled={isSaving} className="w-full py-4 bg-[#10B981] text-white font-bold rounded-2xl shadow-lg hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+
+                <button disabled={isSaving} className="w-full py-4 bg-[#10B981] text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                   {isSaving ? <Loader2 className="animate-spin" /> : <><Save className="w-5 h-5" /> Save Asset</>}
                 </button>
               </form>
