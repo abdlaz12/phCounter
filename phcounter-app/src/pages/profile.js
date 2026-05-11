@@ -141,20 +141,20 @@ export default function ProfilePage() {
   if (!userData) return null;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-10 animate-in fade-in duration-700">
-      {/* Header Banner - UI Sesuai Permintaan */}
-      <div className="bg-[#10B981] rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-          <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-emerald-50">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto pb-10 animate-in fade-in duration-700">
+      {/* Header Banner */}
+      <div className="bg-[#10B981] rounded-[24px] sm:rounded-[32px] p-5 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-8 relative z-10">
+          <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-emerald-50 flex-shrink-0">
             <img src={`https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}&background=random&size=128`} className="w-full h-full object-cover" />
           </div>
-          <div className="flex-1 text-center md:text-left space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight">{userData.firstName} {userData.lastName}</h1>
-            <p className="text-emerald-50 flex items-center justify-center md:justify-start gap-2 font-medium">
+          <div className="flex-1 text-center sm:text-left space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{userData.firstName} {userData.lastName}</h1>
+            <p className="text-emerald-50 flex items-center justify-center sm:justify-start gap-2 font-medium text-sm sm:text-base">
               <Briefcase className="w-4 h-4" /> {userData.role}
             </p>
           </div>
-          <button onClick={handleLogout} className="bg-white/20 hover:bg-white/30 px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 border border-white/20 transition-all">
+          <button onClick={handleLogout} className="bg-white/20 hover:bg-white/30 px-4 sm:px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 border border-white/20 transition-all text-sm">
             <LogOut className="w-4 h-4" /> Logout
           </button>
         </div>
@@ -162,26 +162,26 @@ export default function ProfilePage() {
       </div>
 
       {/* Navigasi Tab */}
-      <div className="bg-white rounded-2xl border border-emerald-50 p-1.5 flex gap-2 shadow-sm">
+      <div className="bg-white rounded-2xl border border-emerald-50 p-1.5 flex gap-1 sm:gap-2 shadow-sm overflow-x-auto no-scrollbar">
         {[
           { id: 'profile', name: 'Profile', icon: User },
           { id: 'security', name: 'Security', icon: Shield },
-          { id: 'notifications', name: 'Notification Choice', icon: Bell },
+          { id: 'notifications', name: 'Notifications', icon: Bell },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap px-2 ${
               activeTab === tab.id ? 'bg-[#10B981] text-white shadow-lg' : 'text-slate-500 hover:bg-emerald-50 hover:text-[#10B981]'
             }`}
           >
-            <tab.icon className="w-4 h-4" /> {tab.name}
+            <tab.icon className="w-4 h-4 flex-shrink-0" /> {tab.name}
           </button>
         ))}
       </div>
 
       {/* Konten Tab */}
-      <div className="bg-white rounded-[32px] border border-emerald-50 shadow-sm p-8 min-h-[400px]">
+      <div className="bg-white rounded-[24px] sm:rounded-[32px] border border-emerald-50 shadow-sm p-5 sm:p-8 min-h-[400px]">
         
         {/* TAB 1: PROFILE BIODATA */}
         {activeTab === 'profile' && (

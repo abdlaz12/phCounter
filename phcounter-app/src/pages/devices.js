@@ -87,12 +87,12 @@ export default function DeviceManagement() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Device Management</h1>
-          <p className="text-emerald-600 font-medium mt-1">Register and monitor your IoT hardware infrastructure.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Device Management</h1>
+          <p className="text-emerald-600 font-medium mt-1 text-sm sm:text-base">Register and monitor your IoT hardware infrastructure.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-600 transition-all justify-center"
+          className="flex items-center gap-2 px-5 sm:px-6 py-3 bg-[#10B981] text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-600 transition-all justify-center self-start sm:self-auto text-sm"
         >
           <Plus className="w-5 h-5" /> Register New Device
         </button>

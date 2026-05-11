@@ -166,12 +166,12 @@ export default function BatchesPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Batch Management</h1>
-          <p className="text-emerald-600 font-medium mt-1">Monitor and control your fermentation infrastructure.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Batch Management</h1>
+          <p className="text-emerald-600 font-medium mt-1 text-sm sm:text-base">Monitor and control your fermentation infrastructure.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-[#10B981] text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all"
+          className="flex items-center gap-2 px-5 sm:px-6 py-3 bg-[#10B981] text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all text-sm self-start sm:self-auto"
         >
           <Plus className="w-5 h-5" /> Create New Batch
         </button>
@@ -192,7 +192,7 @@ export default function BatchesPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[640px]">
             <thead className="bg-[#F8FAFC] text-[#064E3B] font-bold uppercase tracking-wider">
               <tr>
                 <th className="px-8 py-5">Batch Identity</th>

@@ -7,20 +7,20 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const StatCard = ({ title, value, unit, trend, icon: Icon, trendType }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100 flex justify-between items-start">
+  <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-emerald-100 flex justify-between items-start">
     <div>
-      <p className="text-sm font-medium text-emerald-600/70">{title}</p>
-      <h3 className="text-3xl font-bold mt-1 text-slate-900">
-        {value}<span className="text-lg text-emerald-500 font-normal ml-1">{unit}</span>
+      <p className="text-xs sm:text-sm font-medium text-emerald-600/70">{title}</p>
+      <h3 className="text-2xl sm:text-3xl font-bold mt-1 text-slate-900">
+        {value}<span className="text-base sm:text-lg text-emerald-500 font-normal ml-1">{unit}</span>
       </h3>
-      <div className={`flex items-center gap-1 mt-2 text-sm ${trendType === 'up' ? 'text-emerald-600' : trendType === 'down' ? 'text-orange-500' : 'text-slate-400'}`}>
+      <div className={`flex items-center gap-1 mt-2 text-xs sm:text-sm ${trendType === 'up' ? 'text-emerald-600' : trendType === 'down' ? 'text-orange-500' : 'text-slate-400'}`}>
         {trendType === 'up' ? <ArrowUpRight className="w-4 h-4" /> : trendType === 'down' ? <ArrowDownRight className="w-4 h-4" /> : null}
         <span className="font-semibold">{trend}</span>
         <span className="text-slate-400 ml-1">{trendType === 'neutral' ? '' : 'vs last record'}</span>
       </div>
     </div>
-    <div className={`p-3 rounded-2xl ${title.includes('Critical') && value > 0 ? 'bg-red-500' : 'bg-[#10B981]'} text-white shadow-lg shadow-emerald-100`}>
-      <Icon className="w-6 h-6" />
+    <div className={`p-2.5 sm:p-3 rounded-2xl ${title.includes('Critical') && value > 0 ? 'bg-red-500' : 'bg-[#10B981]'} text-white shadow-lg shadow-emerald-100 flex-shrink-0`}>
+      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
     </div>
   </div>
 );
@@ -116,52 +116,52 @@ export default function DashboardPage() {
   }, [timeRange]); // Re-fetch saat filter waktu berubah
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
-          <p className="text-emerald-600 font-medium mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard Overview</h1>
+          <p className="text-emerald-600 font-medium mt-1 text-sm sm:text-base">
             {activeBatch ? `Active Monitoring: ${activeBatch.nameBatch}` : "No active fermentation batch."}
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={handleDownloadPDF} disabled={isExporting} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-semibold shadow-sm hover:bg-emerald-50 transition-all">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <button onClick={handleDownloadPDF} disabled={isExporting} className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-semibold shadow-sm hover:bg-emerald-50 transition-all text-sm">
             {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Download Report
           </button>
-          <button onClick={() => router.push('/devices')} className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] text-white rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all">
+          <button onClick={() => router.push('/devices')} className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#10B981] text-white rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all text-sm">
             <Cpu className="w-4 h-4" /> Add Device
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard title="Average pH Level" value={stats.avgPh} unit="pH" trend="Live" trendType="neutral" icon={Droplets} />
         <StatCard title="In Optimal Range" value={stats.optimalPercent} unit="%" trend="Global" trendType="up" icon={Activity} />
         <StatCard title="Active Batches" value={stats.activeCount} unit="" trend="Running" trendType="neutral" icon={Leaf} />
         <StatCard title="Critical pH Levels" value={stats.criticalCount} unit="Logs" trend="Warning" trendType={stats.criticalCount > 0 ? 'down' : 'neutral'} icon={Activity} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border border-emerald-50">
-           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="lg:col-span-2 bg-white p-5 sm:p-8 rounded-3xl shadow-sm border border-emerald-50">
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">pH Level Analysis</h3>
-                <p className="text-sm text-slate-400 italic">Tracking fermentation trends</p>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900">pH Level Analysis</h3>
+                <p className="text-xs sm:text-sm text-slate-400 italic">Tracking fermentation trends</p>
               </div>
-              {/* FILTER WAKTU (SESUAI DOC-2 F-04) */}
-              <div className="flex bg-slate-100 p-1 rounded-xl">
+              {/* FILTER WAKTU */}
+              <div className="flex bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
                 {['7d', '30d', 'all'].map((range) => (
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${timeRange === range ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${timeRange === range ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                   >
                     {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : 'Full Batch'}
                   </button>
                 ))}
               </div>
            </div>
-           <div className="h-[300px] w-full">
+           <div className="h-[220px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={sensorLogs}>
                   <defs>
