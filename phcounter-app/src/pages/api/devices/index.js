@@ -27,6 +27,24 @@ export default async function handler(req, res) {
 
     // --- LOGIKA GET: LIST DEVICES ---
     if (req.method === "GET") {
+      // ─── Auto-Offline: tandai device yang tidak mengirim data > 2 menit ───
+      const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 menit
+      const cutoffTime = new Date(Date.now() - OFFLINE_THRESHOLD_MS);
+
+      // Update semua device milik user ini yang lastSeen-nya sudah expired
+      await Device.updateMany(
+        {
+          userId: currentUserId,
+          statusOnline: true,
+          $or: [
+            { lastSeen: { $lt: cutoffTime } }, // lastSeen sudah lama
+            { lastSeen: null }                  // belum pernah kirim data
+          ]
+        },
+        { $set: { statusOnline: false } }
+      );
+      // ─────────────────────────────────────────────────────────────────────
+
       const devices = await Device.find({ userId: currentUserId }).select("+apiKey").sort({ createdAt: -1 });
       return res.status(200).json({ success: true, data: devices });
     }

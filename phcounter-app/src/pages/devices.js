@@ -26,7 +26,12 @@ export default function DeviceManagement() {
     }
   };
 
-  useEffect(() => { fetchDevices(); }, []);
+  useEffect(() => {
+    fetchDevices();
+    // Polling setiap 15 detik agar status Online/Offline ter-update otomatis
+    const interval = setInterval(fetchDevices, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleAddDevice = async (e) => {
     e.preventDefault();
@@ -129,7 +134,12 @@ export default function DeviceManagement() {
               </div>
 
               <h3 className="text-xl font-bold text-slate-800 mb-1">{device.nameLabel}</h3>
-              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tighter mb-6">Device ID: {device.deviceId}</p>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tighter mb-1">Device ID: {device.deviceId}</p>
+              <p className="text-[10px] text-slate-300 italic mb-6">
+                {device.lastSeen
+                  ? `Last seen: ${new Date(device.lastSeen).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}`
+                  : 'Never connected'}
+              </p>
 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative group/key">
                 <label className="text-[9px] uppercase font-black text-slate-400 block mb-1 tracking-widest">IoT API Access Key</label>
