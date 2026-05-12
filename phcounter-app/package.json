@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run --spec cypress/e2e/ph-monitor.cy.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
