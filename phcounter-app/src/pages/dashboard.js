@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Droplets, Leaf, Activity, ArrowUpRight, ArrowDownRight, Loader2, Cpu, ChevronDown } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Droplets, Leaf, Activity, ArrowUpRight, ArrowDownRight, Loader2, Cpu, ChevronDown, Download } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { apiRequest } from '@/lib/api';
 import { useRouter } from 'next/router';
@@ -112,7 +114,181 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [selectedBatch, timeRange]);
 
+  // ─── Download Rangkuman pH sebagai PDF ────────────────────────────────────
+  const handleDownloadPDF = () => {
+    if (!selectedBatch || sensorLogs.length === 0) return;
 
+    const batchName = selectedBatch.nameBatch || 'Batch';
+    const now = new Date().toLocaleString('id-ID');
+    const rangeLabel = timeRange === '7d' ? '7 Hari Terakhir' : timeRange === '30d' ? '30 Hari Terakhir' : 'Seluruh Batch';
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 14;
+
+    // ── Background header block ──────────────────────────────────────────────
+    doc.setFillColor(16, 185, 129); // emerald-500
+    doc.rect(0, 0, pageW, 48, 'F');
+
+    // Accent strip
+    doc.setFillColor(6, 148, 100);
+    doc.rect(0, 44, pageW, 4, 'F');
+
+    // App name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text('phCounter', marginX, 18);
+
+    // Subtitle
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(209, 250, 229); // emerald-100
+    doc.text('Laporan Rangkuman Monitoring pH', marginX, 26);
+
+    // Batch name right-aligned in header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(batchName, pageW - marginX, 18, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(209, 250, 229);
+    doc.text(`Status: ${selectedBatch.status}`, pageW - marginX, 26, { align: 'right' });
+    doc.text(`Dicetak: ${now}`, pageW - marginX, 33, { align: 'right' });
+
+    // ── Info row (meta) ──────────────────────────────────────────────────────
+    let curY = 56;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text(`Rentang Data: ${rangeLabel}  |  Total Log: ${sensorLogs.length}  |  Dibuat oleh Sistem phCounter`, marginX, curY);
+
+    // ── Stat boxes ───────────────────────────────────────────────────────────
+    curY += 8;
+    const statBoxes = [
+      { label: 'Rata-rata pH', value: String(stats.avgPh), unit: 'pH', color: [16, 185, 129] },
+      { label: 'Persentase Optimal', value: String(stats.optimalPercent), unit: '%', color: [99, 102, 241] },
+      { label: 'Jumlah Anomali', value: String(stats.criticalCount), unit: 'log', color: stats.criticalCount > 0 ? [239, 68, 68] : [100, 116, 139] },
+      { label: 'Total Data', value: String(sensorLogs.length), unit: 'entri', color: [14, 165, 233] },
+    ];
+
+    const boxW = (pageW - marginX * 2 - 9) / 4;
+    statBoxes.forEach((box, i) => {
+      const bx = marginX + i * (boxW + 3);
+
+      // Box shadow-like effect (slightly larger gray rect behind)
+      doc.setFillColor(226, 232, 240);
+      doc.roundedRect(bx + 0.5, curY + 0.5, boxW, 22, 3, 3, 'F');
+
+      // Main box
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(bx, curY, boxW, 22, 3, 3, 'F');
+
+      // Left color accent bar
+      doc.setFillColor(...box.color);
+      doc.roundedRect(bx, curY, 2.5, 22, 1, 1, 'F');
+
+      // Label
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(box.label, bx + 6, curY + 7);
+
+      // Value
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(...box.color);
+      doc.text(box.value, bx + 6, curY + 16);
+
+      // Unit
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(box.unit, bx + 6 + doc.getTextWidth(box.value) + 1.5, curY + 16);
+    });
+
+    curY += 30;
+
+    // ── Section title ─────────────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Data Log Sensor', marginX, curY);
+
+    // Thin underline
+    doc.setDrawColor(16, 185, 129);
+    doc.setLineWidth(0.5);
+    doc.line(marginX, curY + 1.5, marginX + 35, curY + 1.5);
+
+    curY += 5;
+
+    // ── Sensor log table ─────────────────────────────────────────────────────
+    autoTable(doc, {
+      startY: curY,
+      margin: { left: marginX, right: marginX },
+      head: [['No', 'Waktu', 'Tanggal', 'Nilai pH', 'Status']],
+      body: sensorLogs.map((log, i) => [
+        i + 1,
+        log.name,
+        log.fullDate,
+        log.ph,
+        log.status,
+      ]),
+      headStyles: {
+        fillColor: [16, 185, 129],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+        halign: 'center',
+        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+      },
+      bodyStyles: {
+        fontSize: 8.5,
+        textColor: [30, 41, 59],
+        cellPadding: { top: 2.5, bottom: 2.5, left: 4, right: 4 },
+      },
+      alternateRowStyles: { fillColor: [240, 253, 244] },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 28 },
+        2: { halign: 'center', cellWidth: 36 },
+        3: { halign: 'center', cellWidth: 28, fontStyle: 'bold', textColor: [16, 185, 129] },
+        4: { halign: 'center' },
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 4 && data.section === 'body') {
+          const status = data.cell.raw;
+          if (status === 'Anomali') {
+            data.cell.styles.textColor = [239, 68, 68];
+            data.cell.styles.fillColor = [254, 242, 242];
+            data.cell.styles.fontStyle = 'bold';
+          } else {
+            data.cell.styles.textColor = [16, 185, 129];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      },
+      tableLineColor: [226, 232, 240],
+      tableLineWidth: 0.2,
+    });
+
+    // ── Footer on every page ──────────────────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(0, pageH - 10, pageW, 10, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('phCounter — Sistem Monitoring pH Otomatis', marginX, pageH - 3.5);
+      doc.text(`Halaman ${p} dari ${totalPages}`, pageW - marginX, pageH - 3.5, { align: 'right' });
+    }
+
+    doc.save(`Rangkuman_pH_${batchName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -127,7 +303,14 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-
+          <button
+            onClick={handleDownloadPDF}
+            disabled={!selectedBatch || sensorLogs.length === 0}
+            title={!selectedBatch || sensorLogs.length === 0 ? 'Pilih batch dengan data sensor untuk mengunduh' : `Unduh rangkuman pH – ${selectedBatch?.nameBatch}`}
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-white border-2 border-emerald-200 text-emerald-700 rounded-xl font-semibold hover:bg-emerald-50 hover:border-emerald-400 transition-all text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download className="w-4 h-4" /> Download PDF
+          </button>
           <button
             onClick={() => router.push('/devices')}
             className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#10B981] text-white rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all text-sm"
