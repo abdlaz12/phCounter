@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Droplets, Leaf, Activity, ArrowUpRight, ArrowDownRight, Download, Loader2, Cpu, ChevronDown } from 'lucide-react';
+import { Droplets, Leaf, Activity, ArrowUpRight, ArrowDownRight, Loader2, Cpu, ChevronDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { apiRequest } from '@/lib/api';
 import { useRouter } from 'next/router';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
 
 const StatCard = ({ title, value, unit, trend, icon: Icon, trendType }) => (
   <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-emerald-100 flex justify-between items-start">
@@ -37,7 +36,7 @@ export default function DashboardPage() {
   const [allBatches, setAllBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
+
   const [timeRange, setTimeRange] = useState('7d');
   const [stats, setStats] = useState({ avgPh: 0, optimalPercent: 100, activeCount: 0, criticalCount: 0 });
 
@@ -80,7 +79,7 @@ export default function DashboardPage() {
           fullDate: new Date(log.timestamp).toLocaleDateString(),
           ph: log.phValue,
           status: log.status,
-        })).reverse();
+        }));
 
         setSensorLogs(formattedData);
 
@@ -113,27 +112,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [selectedBatch, timeRange]);
 
-  const handleDownloadPDF = () => {
-    if (sensorLogs.length === 0) return alert('No data to export!');
-    setIsExporting(true);
-    const doc = new jsPDF();
-    const tableRows = sensorLogs.map((log, i) => [i + 1, `${log.fullDate} ${log.name}`, log.ph, log.status]);
 
-    doc.setFontSize(18);
-    doc.text('EcoMonitor - pH Monitoring Report', 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Batch: ${selectedBatch?.nameBatch || 'N/A'} | Status: ${selectedBatch?.status || ''} | Range: ${timeRange}`, 14, 30);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [['No', 'Timestamp', 'pH Level', 'Status']],
-      body: tableRows,
-      headStyles: { fillColor: [16, 185, 129] },
-    });
-
-    doc.save(`EcoMonitor_${selectedBatch?.nameBatch}_${timeRange}.pdf`);
-    setIsExporting(false);
-  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -148,14 +127,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 rounded-xl font-semibold shadow-sm hover:bg-emerald-50 transition-all text-sm"
-          >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download Report
-          </button>
+
           <button
             onClick={() => router.push('/devices')}
             className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#10B981] text-white rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all text-sm"
